@@ -23,6 +23,7 @@ func main() {
 	mode := args.Selector("m", "mode", []string{"list", "dir", "run"}, &argparse.Options{Required: false, Default: "run", Help: "list - list tests, dir - list tests with dir, run - normal run]"})
 	info := args.Flag("", "info", &argparse.Options{Required: false, Default: false, Help: "print commands that are executed"})
 	parallel := args.Int("p", "parallel", &argparse.Options{Required: false, Help: "number of tests run in parallel"})
+	verbose := args.Flag("v", "verbose", &argparse.Options{Required: false, Help: "verbose mode"})
 
 	err := args.Parse(os.Args)
 	if err != nil {
@@ -110,7 +111,7 @@ func main() {
 	}
 	if *mode == "run" {
 		// fmt.Printf(`go test -run '^(%s)$' --tags=%s %s`+"\n", strings.Join(tests, "|"), strings.Join(tags, ","), strings.Join(dirs, " ")) //nolint:forbidigo
-		hasErr = execTest(tests, tags, dirs, *info, parallel)
+		hasErr = execTest(tests, tags, dirs, *info, verbose, parallel)
 	}
 	if hasErr != nil {
 		fmt.Println(hasErr)
