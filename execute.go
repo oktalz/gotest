@@ -10,22 +10,29 @@ import (
 	"strings"
 )
 
-func execTest(tests []string, tags []string, dirs []string, info bool, verbose *bool, parralel *int) error {
+func execTest(tests []string, tags []string, dirs []string, opt TestOptions) error {
 	// command1 := fmt.Sprintf(`go test%s -run '^(%s)$' --tags=%s %s`+"\n", parallelStr, strings.Join(tests, "|"), strings.Join(tags, ","), strings.Join(dirs, " "))
 	// command1 := fmt.Sprintf(` '^(%s)$' --tags=%s %s`+"\n", strings.Join(tags, ","), strings.Join(dirs, " "))
 	arg := []string{"test"}
-	if verbose != nil && *verbose {
+	if opt.Verbose != nil && *opt.Verbose {
 		arg = append(arg, "-v")
 	}
-	if parralel != nil && *parralel > 0 {
-		arg = append(arg, "-p", strconv.Itoa(*parralel))
+	if opt.Parallel != nil && *opt.Parallel > 0 {
+		arg = append(arg, "-p", strconv.Itoa(*opt.Parallel))
+	}
+	if opt.Timeout != nil && *opt.Timeout != "" {
+		arg = append(arg, "-timeout")
+		arg = append(arg, *opt.Timeout)
+	}
+	if opt.Race != nil && *opt.Race {
+		arg = append(arg, "-race")
 	}
 	arg = append(arg, "-run")
 	arg = append(arg, fmt.Sprintf(`^(%s)$`, strings.Join(tests, "|")))
 	arg = append(arg, fmt.Sprintf(`--tags=%s`, strings.Join(tags, ",")))
 	arg = append(arg, dirs...)
 
-	if info {
+	if *opt.Info {
 		fmt.Println("go", strings.Join(arg, " ")) //nolint:forbidigo
 	}
 	ctx := context.Background()

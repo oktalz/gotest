@@ -7,31 +7,20 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/akamensky/argparse"
 )
 
 func main() {
-	args := argparse.NewParser("gotest", "Runs Go tests")
-	args.SetHelp("", "help")
-
-	tag := args.String("t", "tags", &argparse.Options{Required: true, Help: "build tags"})
-	runs := args.Int("n", "runs", &argparse.Options{Required: false, Default: 1, Help: "different runs to split tests"})
-	shift := args.Int("s", "shift", &argparse.Options{Required: false, Default: 0, Help: "shift to start with different index"})
-	mode := args.Selector("m", "mode", []string{"list", "dir", "run", "seq"}, &argparse.Options{Required: false, Default: "run", Help: "list - list tests, dir - list tests with dir, run - normal run]"})
-	info := args.Flag("", "info", &argparse.Options{Required: false, Default: false, Help: "print commands that are executed"})
-	parallel := args.Int("p", "parallel", &argparse.Options{Required: false, Help: "number of tests run in parallel"})
-	verbose := args.Flag("v", "verbose", &argparse.Options{Required: false, Help: "verbose mode"})
-
-	err := args.Parse(os.Args)
+	testOptions, err := parseTestOptions()
 	if err != nil {
-		fmt.Print(args.Usage(err)) //nolint:forbidigo
+		log.Println(err.Error())
 		os.Exit(1)
 	}
-	tags := strings.Split(*tag, ",")
+
+	tags := strings.Split(*testOptions.Tags, ",")
 
 	result := []Test{}
 	fset := token.NewFileSet()
@@ -99,14 +88,14 @@ func main() {
 	dirs := []string{}
 	var hasErr error = nil
 
-	for i := *shift; i < len(result); i += *runs {
-		switch *mode {
+	for i := *testOptions.Shift; i < len(result); i += *testOptions.Runs {
+		switch *testOptions.Mode {
 		case "list":
 			fmt.Println(result[i].Name) //nolint:forbidigo
 		case "dir":
 			fmt.Printf("%s,%s\n", result[i].Dir, result[i].Name) //nolint:forbidigo
 		case "seq":
-			hasErrSeq := execTest([]string{result[i].Name}, tags, []string{"./" + result[i].Dir}, *info, verbose, parallel)
+			hasErrSeq := execTest([]string{result[i].Name}, tags, []string{"./" + result[i].Dir}, *testOptions)
 			if hasErrSeq != nil {
 				fmt.Println(hasErrSeq)
 				hasErr = errors.New("error")
@@ -116,9 +105,9 @@ func main() {
 			dirs = append(dirs, "./"+result[i].Dir)
 		}
 	}
-	if *mode == "run" {
+	if *testOptions.Mode == "run" {
 		// fmt.Printf(`go test -run '^(%s)$' --tags=%s %s`+"\n", strings.Join(tests, "|"), strings.Join(tags, ","), strings.Join(dirs, " ")) //nolint:forbidigo
-		hasErr = execTest(tests, tags, dirs, *info, verbose, parallel)
+		hasErr = execTest(tests, tags, dirs, *testOptions)
 	}
 	if hasErr != nil {
 		fmt.Println(hasErr)
