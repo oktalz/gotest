@@ -10,13 +10,30 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
+
+	"github.com/akamensky/argparse"
 )
 
 func main() {
 	testOptions, err := parseTestOptions()
 	if err != nil {
 		log.Println(err.Error())
+		os.Exit(1)
+	}
+	if *testOptions.Version {
+		info, ok := debug.ReadBuildInfo()
+		if !ok {
+			fmt.Println("Could not read build info")
+		}
+		fmt.Printf("Version: %s, built with %s\n", info.Main.Version, info.GoVersion)
+		return
+	}
+	if testOptions.Tags == nil {
+		parser := argparse.NewParser("gotest", "Runs Go tests")
+		parser.SetHelp("", "help")
+		fmt.Print(parser.Usage(errors.New("[-t|--tags] is required")))
 		os.Exit(1)
 	}
 
